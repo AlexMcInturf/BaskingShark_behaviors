@@ -1,0 +1,36 @@
+---
+title: "BS_Behavioral"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("~/Desktop/Basking sharks/bs.git/bis_cats.git/BaskingShark_CATSdata/BaskingShark_behaviors")
+ID <- 3
+data <- read.csv(paste0("Shark ", ID, "_CATS_behaviors.csv"))
+
+head(data)
+class(data$Time)
+
+# need to first convert time data to seconds
+
+data$Time <- as.POSIXct(data$Time, format="%H:%M:%OS", tz="UTC")
+class(data$Time)
+
+# we have VERY high frequency. Probably can subsample, by removing duplicated timestamps (because we took off the milliseconds and such, so now we only have seconds)
+trash1 <- data$Time[2]-data$Time[1]
+data$TimeNew <- NULL
+for (i in 1:nrow(data)){
+  bleck <- data$Time[i+1] - data$Time[i]
+  data$TimeNew[i] <- bleck[i]
+}
+data$TimeNew
+
+dat2 <- data[!duplicated(data$TimeNew),]
+
+
+head(dat2)
+head(dat2$TimeNew)
+trash <- as.numeric(dat2$Time)
+head(trash)
+```
