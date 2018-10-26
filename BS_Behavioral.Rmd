@@ -5,32 +5,66 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-setwd("~/Desktop/Basking sharks/bs.git/bis_cats.git/BaskingShark_CATSdata/BaskingShark_behaviors")
+setwd("~/Box Sync/BaskingShark_behaviors")
 ID <- 3
 data <- read.csv(paste0("Shark ", ID, "_CATS_behaviors.csv"))
 
-head(data)
+head(data, 20)
 class(data$Time)
 
-# need to first convert time data to seconds
+# This is at 20 Hz. We want to extract every 20th value and get rid of milliseconds
+data2 <- data[seq(1, nrow(data), 20),]
+vector <- as.character(data2$Time)
+data2$Time <- substr(vector, 1, 8)
+head(data2$Time)
 
-data$Time <- as.POSIXct(data$Time, format="%H:%M:%OS", tz="UTC")
-class(data$Time)
+# make into chron object so that we can merge the behavioral data according to timestamp
+# needed to make as a character first so that chron recognizes the format
+library(chron)
+data2$chron<- chron(times. = data2$Time, format ="hh:mm:ss", out.format = "h:m:s")
+data2$chron
+class(data2$chron)
 
-# we have VERY high frequency. Probably can subsample, by removing duplicated timestamps (because we took off the milliseconds and such, so now we only have seconds)
-trash1 <- data$Time[2]-data$Time[1]
-data$TimeNew <- NULL
-for (i in 1:nrow(data)){
-  bleck <- data$Time[i+1] - data$Time[i]
-  data$TimeNew[i] <- bleck[i]
+##########################################
+### let's read in the behavioral data now 
+##########################################
+behavior <- read.csv("CATS_S3_Events_csv.csv")
+head(behavior)
+class(behavior$Time)
+
+# use this function (found on internet) to generate time values from the seconds values in the behavior data
+dhms <- function(t){
+    paste(t %/% (60*60*24) 
+         ,paste(formatC(t %/% (60*60) %% 24, width = 2, format = "d", flag = "0")
+               ,formatC(t %/% 60 %% 60, width = 2, format = "d", flag = "0")
+               ,formatC(t %% 60, width = 2, format = "d", flag = "0")
+               ,sep = ":"
+               )
+         )
 }
-data$TimeNew
-
-dat2 <- data[!duplicated(data$TimeNew),]
 
 
-head(dat2)
-head(dat2$TimeNew)
-trash <- as.numeric(dat2$Time)
-head(trash)
+behavior$Time <- dhms(behavior$Time)
+head(behavior$Time)
+
+# clean it up 
+vector2 <- as.character(behavior$Time)
+behavior$Time <- substr(vector2, 3, 10) #this allows you to get rid of objects within a character string (only want the 3-10 values in the character string)
+head(behavior$Time)
+
+# now make this into a chron object
+behavec <- chron(times. = behavior$Time, format ="hh:mm:ss", out.format = "h:m:s")
+head(behavec)
+
+#### We want to add all of these times to the start time from the data
+behavior$Time2 <- behavec + data2$chron[1]
+head(behavior$Time2)
+
+
+##############################
+# Check out all of the columns in both datasets to make sure we can merge them # 
+############################
+# CATS data
+head(data2) # going to merge using the "chron"
+head(behavior)
 ```
