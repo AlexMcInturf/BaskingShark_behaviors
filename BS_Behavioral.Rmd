@@ -13,15 +13,13 @@ head(data, 20)
 class(data$Time)
 summary(data)
 
-#clean up data so we only get what we need
+#clean up CATS Cam data so we only get what we need
 data <- data[,c("Time", "Pressure...channel..1", "Sway..g.", "Surge..g.", "Heave..g.", "Light.intensity...channel..1", "Temperature.ext....channel..1", "ODBA")] 
 
 # need to convert data values to meters
-
-
 head(data)
 data$Pressure...channel..1 <- (data$Pressure...channel..1*.001)+.3
-summary(data$Pressure...channel..1)
+summary(data$Pressure...channel..1) # got this information from Heather...need to confirm (86 meters?)
 
 
 # This is at 20 Hz. We want to extract every 20th value and get rid of milliseconds
@@ -30,6 +28,8 @@ vector <- as.character(data2$Time)
 data2$Time <- substr(vector, 1, 8)
 head(data2$Time)
 head(data2)
+### this gives us t
+
 # make into chron object so that we can merge the behavioral data according to timestamp
 # needed to make as a character first so that chron recognizes the format
 #install.packages("chron")
@@ -38,6 +38,11 @@ data2$chron<- chron(times. = data2$Time, format ="hh:mm:ss", out.format = "h:m:s
 data2$chron
 class(data2$chron)
 
+```
+
+
+
+```{r}
 ##########################################
 ### let's read in the behavioral data now 
 ##########################################
@@ -75,11 +80,14 @@ head(behavior$Time2)
 head(behavior)
 
 ## clean up data so that we only have behavior, comments and time2 columns
-behavior2 <- behavior[,(2:4)]
+behavior2 <- behavior[,(3:5)]
 head(behavior2)
 colnames(behavior2) <- c("Behavior", "Comment", "chron")
 head(behavior2)
+```
 
+
+```{r}
 ##############################
 # Check out all of the columns in both datasets to make sure we can merge them # 
 ############################
@@ -144,212 +152,20 @@ plot(fulldat$Time, (-fulldat$Pressure), type = "l")
 #### if we keep it simple: feed vs. non-feeding
 fulldat$feeding <- ifelse (fulldat$Behavior == "Feed"|fulldat$Behavior == "Lturn while feed"| fulldat$Behavior == "Rturn while feed"| fulldat$Behavior == "Swallow", 1, 0)
 
-
-range(fulldat$Pressure)[2]/4
-(2*range(fulldat$Pressure)[2]/4)
-(3*range(fulldat$Pressure)[2]/4)
-(range(fulldat$Pressure)[2])
-
-topdat <- fulldat[fulldat$Pressure<(range(fulldat$Pressure)[2]/4),]
-range(topdat$Pressure)
-midtopdat <- fulldat[fulldat$Pressure>=(range(fulldat$Pressure)[2]/4) & fulldat$Pressure<(2*range(fulldat$Pressure)[2]/4),]
-range(midtopdat$Pressure)
-lowtopdat <- fulldat[fulldat$Pressure>=(3*range(fulldat$Pressure)[2]/4) & fulldat$Pressure<(range(fulldat$Pressure)[2]),]
-range(lowtopdat$Pressure)
-
-# now for each, we want to look at the percentage of time that the shark exhibits certain behaviors here
-```
-Breakdown of behaviors
-
-```{r}
-
-
+#so, feeding here = 1; non-feeding = 1
 
 ## Assuming each row is 1 second. Double check this:
 (fulldat$Time[nrow(fulldat)] - fulldat$Time[1]) #[1] 03:36:22
 nrow(fulldat)
 
-
-
-
 ### if each row is a second, then the number of times each behavior is assigned to a second should give us the duration of that behavior over time
 
-##################### TOP OF WATER COLUMN ##############
-time1 <- nrow(topdat)/nrow(fulldat) #indicates that out of all time, sharks spends 20% in upper part of water column
-
-# percent feeding vs. nonfeeding
-topfeed <- topdat[topdat$feeding==1,]
-feed1<- nrow(topfeed)/nrow(topdat)
-feed1#21%
-
-##################### 2nd part OF WATER COLUMN ##############
-time2 <- nrow(midtopdat)/nrow(fulldat) #indicates that out of all time, sharks spends 25% in 25-50% quartile depth range
-
-# percent feeding vs. nonfeeding
-midtopfeed <- midtopdat[midtopdat$feeding==1,]
-feed2<- nrow(midtopfeed)/nrow(midtopdat)
-feed2#08%
-
-##################### 3rd part OF WATER COLUMN ##############
-time3 <- nrow(lowtopdat)/nrow(fulldat) #indicates that out of all time, sharks spends 26% in 50-75% quartile depth range
-
-# percent feeding vs. nonfeeding
-lowtopfeed <- lowtopdat[lowtopdat$feeding==1,]
-feed3 <- nrow(lowtopfeed)/nrow(lowtopdat)
-feed3#.7%
-
-
-# Plot the feeding percentage as a function of area in the water column
-barplot(height=c(feed1, feed2, feed3), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent feeding", main="Feeding by Depth")
 ```
 
-Here we see that feeding time (vs. all other behaviors (swimming and turning)) decreases by depth, which makes intuitive sense. It would be interesting to consider the environmental context in which this occurs (likely feeding only in the plankton layer). 
 
-We also have other data on more nuanced behaviors. One hypothesis is that it's more energetically efficient to travel at depth. If this is the case, we might hypothesize that there would be fewer turns at depth than at the surface. We can also look at straight swimming (i.e. no turning) vs. feeding. 
+Here we see that feeding time (vs. all other behaviors (swimming and turning)) decreases by depth, which makes intuitive sense. It would be interesting to consider the environmental context in which this occurs (likely feeding only in the plankton 
+layer). 
 
-```{r}
-# top
-topturn <- topdat[topdat$Behavior=="Right turn"|topdat$Behavior=="Left turn"|topdat$Behavior=="Rturn while feed"|topdat$Behavior=="Lturn while feed",]
-turn1<- nrow(topturn)/nrow(topdat)
-turn1 #.14
-
-#middle
-midtopturn <- midtopdat[midtopdat$Behavior=="Right turn"|midtopdat$Behavior=="Left turn"|midtopdat$Behavior=="Rturn while feed"|midtopdat$Behavior=="Lturn while feed",]
-turn2<- nrow(midtopturn)/nrow(midtopdat)
-turn2 #.29
-
-#lower
-lowtopturn <- lowtopdat[lowtopdat$Behavior=="Right turn"|lowtopdat$Behavior=="Left turn"|lowtopdat$Behavior=="Rturn while feed"|lowtopdat$Behavior=="Lturn while feed",]
-turn3<- nrow(lowtopturn)/nrow(lowtopdat)
-turn3 #.10
-
-
-##Now let's compare to just straight swimming
-
-# First need to set up the "straight swim" data
-# top
-topswim <- topdat[topdat$Behavior=="Straight swim",]
-swim1<- nrow(topswim)/nrow(topdat)
-swim1 #.60
-
-# Middle
-midtopswim <- midtopdat[midtopdat$Behavior=="Straight swim",]
-swim2<- nrow(midtopswim)/nrow(midtopdat)
-swim2 #.33
-
-#bottom
-lowtopswim <- lowtopdat[lowtopdat$Behavior=="Straight swim",]
-swim3<- nrow(lowtopswim)/nrow(lowtopdat)
-swim3 #.36
-
-# plotting the swim data
-#pdf("my Graph.pdf", height=10, width=30)
-barplot(height=c(swim1, swim2, swim3), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent straight swimming", main="Straight Swimming by Depth")
-#dev.off()
-
-# plotting the swim vs. turning proportion
-st1 <-nrow(topswim)/nrow(topturn)
-st2 <- nrow(midtopswim)/nrow(midtopturn)
-st3 <- nrow(lowtopswim)/nrow(lowtopturn)
-
-stgraph <- barplot(height=c(st1, st2, st3), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent swimming vs turning", main="Swimming/Turning Proportion by Depth")
-
-# plotting the swim vs. feeding proportion
-sf1 <-nrow(topswim)/nrow(topfeed)
-sf2 <- nrow(midtopswim)/nrow(midtopfeed)
-sf3 <- nrow(lowtopswim)/nrow(lowtopfeed)
-
-sfgraph <- barplot(height=c(sf1, sf2, sf3), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent straight swimming vs feeding", main="Straight Swimming/Feeding Proportion by Depth")
-# note that this is NOT taking into account turns
-
-```
-Summary based on graphs:
-1) Turning doesn't change much by depth
-2) Straight swimming (no turns) seems to happen in the middle part of the water column
-3) However, the proportion of straight swimming (no turns) to feeding is largest at depth
-
-Another interesting behavior to look at would be swallowing - are the sharks sampling? Or are they merely swallowing? From observation, it seems like they don't *always* continue feeding afterwards. Let's look at where most of the swallowing happens as it compares to where the feeding tends to happen. 
-```{r}
-# First need to set up the "straight swim" data
-# top
-topswal <- topdat[topdat$Behavior=="Swallow",]
-swal1<- nrow(topswal)/nrow(topdat)
-swal1 #.04
-
-# mid water column
-midtopswal <- midtopdat[midtopdat$Behavior=="Swallow",]
-swal2<- nrow(midtopswal)/nrow(midtopdat)
-swal2 #.08
-
-lowtopswal <- lowtopdat[lowtopdat$Behavior=="Swallow",]
-swal3<- nrow(lowtopswal)/nrow(lowtopdat)
-swal3 #.7
-
-
-
-# plotting the swallow data
-barplot(height=c(swal1, swal2, swal3), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent swallowing", main="Swallowing by Depth")
-```
-
-The results here suggest that swallowing doesn't change much by depth, which is *interesting* because we know that feeding changes drastically by depth. So why would they swallow near the sea bed? This supports the hypothesis for sampling, rather than just swallowing food. 
-
-Now let's put all the graphs together for ease of visualization. 
-
-```{r}
-par(mfrow=c(3,2))
-barplot(height=c(feed1, feed2, feed3), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent feeding", main="Feeding by Depth")
-
-barplot(height=c(swim1, swim2, swim3), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent straight swimming", main="Straight Swimming by Depth")
-
-barplot(height=c(turn1, turn2, turn3), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent turning", main="Turning by Depth")
-
-barplot(height=c(st1, st2, st3), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent swimming vs turning", main="Straight Swimming/Turning Proportion by Depth")
-
-barplot(height=c(sf1, sf2, sf3), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent straight swimming vs feeding", main="Straight Swimming/Feeding Proportion by Depth")
-
-barplot(height=c(swal1, swal2, swal3), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent swallowing", main="Swallowing by Depth")
-
-```
-
-Now let's look at characteristics of each of these parts of the water column.
-
-```{r}
-summary(fulldat)
-barplot(height=c(mean(topdat$Temperature), mean(midtopdat$Temperature), mean(lowtopdat$Temperature)), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Temp values", main="Temp by Depth")
-
-#almost no change in mean temperature (water fully mixed)
-
-barplot(height=c(mean(topdat$Light), mean(midtopdat$Light), mean(lowtopdat$Light)), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Light values", main="Light by Depth")
-
-# drops off drastically in the bottom quarter of the area used by the shark
-```
-
-Summary here: for shark 3, don't see a ton of environmental differences.
-
-But, let's look briefly at the mean values from the accelerometer data. 
-
-```{r}
-# If we are interested in tailbeat frequency (raw accelerometer values, unfiltered), we can take a quick look at the range in sway values
-range(topdat$Sway)
-sw1 <- range(topdat$Sway)[2] + abs(range(topdat$Sway)[1])
-sw1
-
-range(midtopdat$Sway)
-sw2 <- range(midtopdat$Sway)[2] + abs(range(midtopdat$Sway)[1])
-sw2
-range(lowtopdat$Sway)
-sw3 <- range(lowtopdat$Sway)[2] + abs(range(lowtopdat$Sway)[1])
-sw3
-range(lowdat$Sway)
-
-barplot(height=c(sw1, sw2, sw3), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Sway Amplitude (range)", main="Sway by Depth")
-
-# Note: I'm assuming that the range of sway values is more indicative of amplitude...not sure if that's the case
-
-# And, just for kicks: ODBA
-barplot(height=c(abs(mean(topdat$ODBA)), abs(mean(midtopdat$ODBA)), abs(mean(lowtopdat$ODBA))), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="ODBA values", main="Rough mean ODBA by Depth")
-
-```
 
 **Now to do the same thing for Shark 2**
 
@@ -363,12 +179,12 @@ class(data_2$Time)
 summary(data_2)
 
 #clean up data so we only get what we need
-data_2 <- data_2[,c("Time", "Pressure...channel..1", "Acceleration..1....channel..1", "Acceleration..1....channel..2", "Acceleration..1....channel..3","Acceleration..2....channel..1","Acceleration..2....channel..2", "Acceleration..2....channel..3", "Light.intensity...channel..1", "Temperature.ext....channel..1", "ODBA")] 
+data_2 <- data_2[,c("Time", "Pressure...channel..1", "Sway", "Surge", "Heave","Acceleration..2....channel..1","Acceleration..2....channel..2", "Acceleration..2....channel..3", "Light.intensity...channel..1", "Temperature.ext....channel..1", "ODBA")] 
   
-
+ 
 # calculate pressure to meters #
 data_2$Pressure...channel..1 <- (data_2$Pressure...channel..1*.001)+27.71
-summary(data_2$Pressure...channel..1)
+summary(data_2$Pressure...channel..1) #Heather did this pressure calculation
 
 # This is at 20 Hz. We want to extract every 20th value and get rid of milliseconds
 data2_s2 <- data_2[seq(1, nrow(data_2), 20),]
@@ -383,7 +199,10 @@ library(chron)
 data2_s2$chron<- chron(times. = data2_s2$Time, format ="hh:mm:ss", out.format = "h:m:s")
 data2_s2$chron
 class(data2_s2$chron)
+```
 
+
+```{r}
 ##########################################
 ### let's read in the behavioral data now 
 ##########################################
@@ -426,6 +245,9 @@ head(behavior2_s2)
 colnames(behavior2_s2) <- c("Behavior", "Comment", "chron")
 head(behavior2_s2)
 
+```
+
+```{r}
 ##############################
 # Check out all of the columns in both datasets to make sure we can merge them # 
 ############################
@@ -444,7 +266,7 @@ head(fulldat_s2, 200)
 
 summary(fulldat_s2)
 #note that accelerometer values are in g
-colnames(fulldat_s2) <- c("Pressure", "Acc1", "Acc2", "Acc3", "Acc2.1", "Acc2.2", "Acc2.3", "Light", "Temperature", "ODBA", "chron", "Behavior", "comments")
+colnames(fulldat_s2) <- c("Pressure", "Sway", "Surge", "Heave", "Acc2.1", "Acc2.2", "Acc2.3", "Light", "Temperature", "ODBA", "chron", "Behavior", "comments")
 head(fulldat_s2)
 
 # get rid of the top rows before the behaviors begin
@@ -464,8 +286,6 @@ plot(fulldat_s2$chron, -(fulldat_s2$Pressure), type="l")
 Now that we have cleaned up our data and combined the CATS and behavioral data sets, we need to fill in the behaviors that are currently missing for every other timestamp (since we set it up so that we only had a behavior assigned to the time when it started)
 
 ```{r}
-
-
 # for loop for filling in behaviors
 for (i in 1:nrow(fulldat_s2)) {
   if(is.na(fulldat_s2[i,]$Behavior)==TRUE){
@@ -496,280 +316,34 @@ summary(fulldat_s2$feeding)
 #fulldat$Pressure2 <- abs(fulldat$Pressure*0.010197442889221)
 #range(fulldat$Pressure)
 
-### note - these readings are NOT what they should be
-summary(fulldat_s2$Pressure)
 
-#taking the absolute value of these pressures
-topdat_s2 <- fulldat_s2[fulldat_s2$Pressure<(range(fulldat_s2$Pressure)[2]/4),]
-range(topdat_s2$Pressure)
-midtopdat_s2 <- fulldat_s2[fulldat_s2$Pressure>=(range(fulldat_s2$Pressure)[2]/4) & fulldat_s2$Pressure<(2*range(fulldat_s2$Pressure)[2]/4),]
-range(midtopdat_s2$Pressure)
-lowtopdat_s2 <- fulldat_s2[fulldat_s2$Pressure>=(3*range(fulldat_s2$Pressure)[2]/4) & fulldat_s2$Pressure<(range(fulldat_s2$Pressure)[2]),]
-range(lowtopdat_s2$Pressure)
-
-# now for each, we want to look at the percentage of time that the shark exhibits certain behaviors here
-```
-Breakdown of behaviors
-
-```{r}
-
-head(fulldat_s2)
-class(fulldat_s2$chron)
-## Assuming each row is 1 second. Double check this:
-(fulldat_s2$chron[nrow(fulldat_s2)] - fulldat_s2$chron[1])
-nrow(fulldat_s2)
-
-
-
-
-### if each row is a second, then the number of times each behavior is assigned to a second should give us the duration of that behavior over time
-
-##################### TOP OF WATER COLUMN ##############
-time1 <- nrow(topdat_s2)/nrow(fulldat_s2)
-time1
-# percent feeding vs. nonfeeding
-topfeed_s2 <- topdat_s2[topdat_s2$feeding==1,]
-feed1_s2<- nrow(topfeed_s2)/nrow(topdat_s2) #25%
-feed1_s2
-
-##################### 2nd part OF WATER COLUMN ##############
-time2 <- nrow(midtopdat_s2)/nrow(fulldat_s2)
-time2
-# percent feeding vs. nonfeeding
-midtopfeed_s2 <- midtopdat_s2[midtopdat_s2$feeding==1,]
-feed2_s2<- nrow(midtopfeed_s2)/nrow(midtopdat_s2)
-feed2_s2#3%
-feed2_s2
-##################### 3rd part OF WATER COLUMN ##############
-time3 <- nrow(lowtopdat_s2)/nrow(fulldat_s2)
-time3
-# percent feeding vs. nonfeeding
-lowtopfeed_s2 <- lowtopdat_s2[lowtopdat_s2$feeding==1,]
-feed3_s2 <- nrow(lowtopfeed_s2)/nrow(lowtopdat_s2) #11%
-feed3_s2
-
-
-# Plot the feeding percentage as a function of area in the water column
-barplot(height=c(feed1_s2, feed2_s2, feed3_s2), names.arg=(c("Top", "middle", "low ")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent feeding", main="Feeding by Depth")
-```
-
-
-
-```{r}
-# top of water column
-topturn_s2 <- topdat_s2[topdat_s2$Behavior=="Right turn"|topdat_s2$Behavior=="Left turn"|topdat_s2$Behavior=="Rturn while feed"|topdat_s2$Behavior=="Lturn while feed",]
-turn1_s2<- nrow(topturn_s2)/nrow(topdat_s2)
-turn1_s2 #.05
-
-# Mid water column
-midtopturn_s2 <- midtopdat_s2[midtopdat_s2$Behavior=="Right turn"|midtopdat_s2$Behavior=="Left turn"|midtopdat_s2$Behavior=="Rturn while feed"|midtopdat_s2$Behavior=="Lturn while feed",]
-turn2_s2<- nrow(midtopturn_s2)/nrow(midtopdat_s2)
-turn2_s2 #.02
-
-lowtopturn_s2 <- lowtopdat_s2[lowtopdat_s2$Behavior=="Right turn"|lowtopdat_s2$Behavior=="Left turn"|lowtopdat_s2$Behavior=="Rturn while feed"|lowtopdat_s2$Behavior=="Lturn while feed",]
-turn3_s2<- nrow(lowtopturn_s2)/nrow(lowtopdat_s2)
-turn3_s2 #.002
-
-
-## Okay, so out of all the behaviors, it doesn't seem like turning changes very much based on depth. Now let's compare to just straight swimming
-
-# First need to set up the "straight swim" data
-
-topswim_s2 <- topdat_s2[topdat_s2$Behavior=="Straight swim",]
-swim1_s2<- nrow(topswim_s2)/nrow(topdat_s2)
-swim1_s2 #.62
-
-
-midtopswim_s2 <- midtopdat_s2[midtopdat_s2$Behavior=="Straight swim",]
-swim2_s2<- nrow(midtopswim_s2)/nrow(midtopdat_s2)
-swim2_s2 #.69
-
-lowtopswim_s2 <- lowtopdat_s2[lowtopdat_s2$Behavior=="Straight swim",]
-swim3_s2<- nrow(lowtopswim_s2)/nrow(lowtopdat_s2)
-swim3_s2 #.40
-
-
-# plotting the swim data
-barplot(height=c(swim1_s2, swim2_s2, swim3_s2), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent straight swimming", main="Straight Swimming by Depth")
-
-
-# plotting the swim vs. turning proportion
-st1_s2 <-nrow(topswim_s2)/nrow(topturn_s2)
-st2_s2 <- nrow(midtopswim_s2)/nrow(midtopturn_s2)
-st3_s2 <- nrow(lowtopswim_s2)/nrow(lowtopturn_s2)
-
- 
-barplot(height=c(st1_s2, st2_s2, st3_s2), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent swimming vs turning", main="Swimming/Turning Proportion by Depth")
-
-# plotting the swim vs. feeding proportion
-sf1_s2 <-nrow(topswim_s2)/nrow(topfeed_s2)
-sf2_s2 <- nrow(midtopswim_s2)/nrow(midtopfeed_s2)
-sf3_s2 <- nrow(lowtopswim_s2)/nrow(lowtopfeed_s2)
-
-
-barplot(height=c(sf1_s2, sf2_s2, sf3_s2), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent straight swimming vs feeding", main="Straight Swimming/Feeding Proportion by Depth")
-# note that this is NOT taking into account turns
 
 ```
 
-Another interesting behavior to look at would be swallowing - are the sharks sampling? Or are they merely swallowing? From observation, it seems like they don't *always* continue feeding afterwards. Let's look at where most of the swallowing happens as it compares to where the feeding tends to happen. 
-```{r}
-# First need to set up the "straight swim" data
-
-topswal_s2 <- topdat_s2[topdat_s2$Behavior=="Swallow",]
-swal1_s2<- nrow(topswal_s2)/nrow(topdat_s2)
-swal1_s2 #.04
-
-
-midtopswal_s2 <- midtopdat_s2[midtopdat_s2$Behavior=="Swallow",]
-swal2_s2<- nrow(midtopswal_s2)/nrow(midtopdat_s2)
-swal2_s2 #.0
-
-lowtopswal_s2 <- lowtopdat_s2[lowtopdat_s2$Behavior=="Swallow",]
-swal3_s2<- nrow(lowtopswal_s2)/nrow(lowtopdat_s2)
-swal3_s2 #.0
-
-
-# plotting the swallow data
-barplot(height=c(swal1_s2, swal2_s2, swal3_s2), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent swallowing", main="Swallowing by Depth")
-```
-This is an instance where shark 2 differs from shark 3 - most swallowing occurs in the upper part of the water column
-
-Now let's put all the graphs together for ease of visualization. 
+Looking at all behaviors as function of depth
 
 ```{r}
-par(mfrow=c(3,2))
-barplot(height=c(feed1_s2, feed2_s2, feed3_s2), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent feeding", main="Feeding by Depth")
-
-barplot(height=c(swim1_s2, swim2_s2, swim3_s2), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent straight swimming", main="Straight Swimming by Depth")
-
-barplot(height=c(turn1_s2, turn2_s2, turn3_s2), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent turning", main="Turning by Depth")
-
-barplot(height=c(st1_s2, st2_s2, st3_s2), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent swimming vs turning", main="Straight Swimming/Turning Proportion by Depth")
-
-barplot(height=c(sf1_s2, sf2_s2, sf3_s2), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent straight swimming vs feeding", main="Straight Swimming/Feeding Proportion by Depth")
-
-barplot(height=c(swal1_s2, swal2_s2, swal3_s2), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Proportion of time spent swallowing", main="Swallowing by Depth")
-
-```
-
-Now let's look at characteristics of each of these parts of the water column.
-
-```{r}
-summary(fulldat_s2)
-barplot(height=c(mean(topdat_s2$Temperature), mean(midtopdat_s2$Temperature), mean(lowtopdat_s2$Temperature)), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Temp values", main="Temp by Depth")
-
-#almost no change in mean temperature (water fully mixed) - same as with shark 3
-
-barplot(height=c(mean(topdat_s2$Light), mean(midtopdat_s2$Light), mean(lowtopdat_s2$Light)), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Light values", main="Light by Depth")
-
-# drops off drastically in the bottom quarter of the area used by the shark - same as shark 3
-```
-
-Summary here: for both sharks, don't see a ton of environmental differences.
-
-For shark 2, the accelerometer values are as of yet unclear. Still need to define the channels. But, we can look at ODBA:
-
-```{r}
-
-barplot(height=c(abs(mean(topdat_s2$ODBA)), abs(mean(midtopdat_s2$ODBA)), abs(mean(lowtopdat_s2$ODBA))), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="ODBA values", main="Rough mean ODBA by Depth")
-```
-
-*Final notes on comparison so far - *
-
-*Behavioral data*
-
-- Feeding for both sharks declines with depth - most takes place in upper 50% of water column
-- Straight swimming: shark 2 and 3 = mostly in 25-75% depth range (not sure if significant)
-      **Swim/turn proportion highest in 50 - 75% for shark3, but is highest at depth in bottom 50% for shark 3**
-      **Straight swimming/feeding proportion highest at bottom 25% of water column for shark 3, lower 50-75% for shark2**
-        - Note that "straight swimming" refers to NO TURNS. "Swimming" refers to anything but feeding. 
-- Swallowing for shark 3 is most frequent in middle 25-75% depth range, but for shark 2, happens primarily in top 50%
-
-*Environmental data*
-- For both sharks, water seems well mixed, and light level doesn't drop off until the bottom 25%
-
-*Accelerometer data*
-- Shark 3: Sway highest at surface 25% (looking at amplitude)
-        - Rough mean ODBA by depth = highest at surface
-- Shark 2: Haven't had a chance to convert accelerometer channel values yet
-        - Rough mean ODBA here, however, was highest in middle 25-75% of water column 
-        
-
-*Now to look at proportion of time spent in each part of the water column*
-In addition, we will begin looking at behaviors based on depth profile
-```{r}
-#Shark 3
-toptime <- nrow(topdat)/nrow(fulldat)
-midtime <- nrow(midtopdat)/nrow(fulldat)
-midtime
-lowtime <- nrow(lowtopdat)/nrow(fulldat)
-
-toptime_s2 <- nrow(topdat_s2)/nrow(fulldat_s2)
-midtime_s2 <- nrow(midtopdat_s2)/nrow(fulldat_s2)
-midtime
-lowtime_s2 <- nrow(lowtopdat_s2)/nrow(fulldat_s2)
-
-par(mfrow=c(2,1))
-barplot(height=c(toptime, midtime, lowtime), names.arg=(c("Top", "Middle", "Bottom")), ylab="Time spent in water column", main="Water column use - S3")
-
-barplot(height=c(toptime_s2, midtime_s2, lowtime_s2), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Time spent in water column", main="Water column use - S2")
-
-
-dev.off()
-
-
-# looking at behaviors
 ftrash <- fulldat[fulldat$feeding==1, ]
-ftrash_s2 <- fulldat_s2[fulldat_s2$feeding==1, ] #inc swallowing
+ftrash_s2 <- fulldat_s2[fulldat_s2$feeding==1, ] #includes swallowing
 swi <- fulldat[fulldat$feeding==0, ]
 swi_s2 <- fulldat_s2[fulldat_s2$feeding==0, ] #all non-feeding
 cons <- fulldat[fulldat$Behavior=="Conspecific interaction",]
 cons_s2 <- fulldat_s2[fulldat_s2$Behavior=="Conspecific interaction",]
 
-par(mfrow=c(2,2))
-plot(fulldat$Time, -(fulldat$Pressure), type="l", col="black", main="S3 Depth Profile + Feed/NF")
+
+plot(fulldat$Time, -(fulldat$Pressure), type="l", col="black", main="S3 Depth Profile + Feed/NF", xlab="Time", ylab="Depth (m)")
 abline(v=c(ftrash$Time), col = rgb(red=0, green=0, blue = 1, alpha = 0.01)) # blue = feed
 abline(v=c(swi$Time), col = rgb(red=1, green=0, blue = 0, alpha = 0.01)) # rd = non-feed
 abline(v=c(cons$Time), col = rgb(red=0, green=1, blue = 0, alpha = 0.01)) #green = conspecific interaction
 
 # white = areas where the camera was out of water
-
 #alpha allows us to make these transparent
 
-plot(fulldat_s2$chron, -(fulldat_s2$Pressure), type="l", col="black", main="S2 Depth Profile + Feed/NF")
+# now do it on shark 2
+plot(fulldat_s2$chron, -(fulldat_s2$Pressure), type="l", col="black", main="S2 Depth Profile + Feed/NF", xlab="Time", ylab="Depth (m)")
 abline(v=c(ftrash_s2$chron), col = rgb(red=0, green=0, blue = 1, alpha = 0.01)) # blue = feed
 abline(v=c(swi_s2$chron), col = rgb(red=1, green=0, blue = 0, alpha = 0.01)) # rd = non-feed
 abline(v=c(cons_s2$chron), col = rgb(red=0, green=1, blue = 0, alpha = 0.01)) #green = conspecific interaction
 
-# add them all in
-barplot(height=c(toptime, midtime, lowtime), names.arg=(c("Top", "Middle", "Bottom")), ylab="Time spent in water column", main="Water column use - S3")
-
-barplot(height=c(toptime_s2, midtime_s2, lowtime_s2), names.arg=(c("Top", "Middle", "Bottom")), xlab="Area of water column (used by shark)", ylab="Time spent in water column", main="Water column use - S2")
-
 ```
 
-Same idea, but using accelerometer data
-
-```{r}
-range(fulldat$Sway)
-mean(fulldat$Sway)
-ampsway <- range(fulldat$Sway)[2] - range(fulldat$Sway)[1]
-ampsway
-#1.8 is our max sway
-
-range(topdat$Sway)
-ampsway_top <- range(fulldat$Sway)[2] - range(fulldat$Sway)[1]
-range(midtopdat$Sway)
-ampsway_mid <- range(fulldat$Sway)[2] - range(fulldat$Sway)[1]
-range(lowtopdat$Sway)
-ampsway_low <- range(fulldat$Sway)[2] - range(fulldat$Sway)[1]
-
-barplot(c(ampsway_top, ampsway_mid, ampsway_low))
-
-meansway_top <- mean(topdat$Sway)
-meansway_mid <- mean(midtopdat$Sway)
-meansway_low <- mean(lowtopdat$Sway)
-barplot(c(meansway_top, meansway_mid, meansway_low))
-
-```
