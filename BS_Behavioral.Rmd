@@ -316,11 +316,9 @@ summary(fulldat_s2$feeding)
 #fulldat$Pressure2 <- abs(fulldat$Pressure*0.010197442889221)
 #range(fulldat$Pressure)
 
-
-
 ```
 
-Looking at all behaviors as function of depth
+Looking at all behaviors as function of depth (**Figure 1**)
 
 ```{r}
 ftrash <- fulldat[fulldat$feeding==1, ]
@@ -346,4 +344,29 @@ abline(v=c(swi_s2$chron), col = rgb(red=1, green=0, blue = 0, alpha = 0.01)) # r
 abline(v=c(cons_s2$chron), col = rgb(red=0, green=1, blue = 0, alpha = 0.01)) #green = conspecific interaction
 
 ```
+***Accelerometer data*
+We will need to run a low pass filter over the tailbeat data (our "sway" axis)
 
+```{r}
+#install.packages("signal")
+library(signal)
+
+#s3
+plot(fulldat$Heave~fulldat$Time, type = "l", main="Accelerometer signals, S3", xlab="Acceleration (m/s^3)", ylab="Time")
+lines(fulldat$Surge~fulldat$Time, col="red")
+lines(fulldat$Sway~fulldat$Time, col="blue")
+
+#s2
+plot(fulldat_s2$Sway~fulldat_s2$chron, type = "l", main="Accelerometer signals, S2", xlab="Acceleration (m/s^3)", ylab="Time")
+lines(fulldat_s2$Surge~fulldat_s2$chron, col="red")
+lines(fulldat_s2$Heave~fulldat_s2$chron, col="blue")
+
+
+# to get rid of high frequency signals in the sway axis, need to run a low pass filter. Note that we already started to do that by only getting a data point every second (vs. 20/second)
+
+#Check out filtfilt
+
+
+
+
+```
