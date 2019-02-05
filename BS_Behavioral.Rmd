@@ -13,6 +13,10 @@ head(data, 20)
 class(data$Time)
 summary(data)
 
+## need to keep magnetometer reading, but which one? 
+
+plot(data$Gyroscope..2....channel..1~data$Time)
+
 #clean up CATS Cam data so we only get what we need
 data <- data[,c("Time", "Pressure...channel..1", "Sway..g.", "Surge..g.", "Heave..g.", "Light.intensity...channel..1", "Temperature.ext....channel..1", "ODBA")] 
 
@@ -37,6 +41,8 @@ library(chron)
 data2$chron<- chron(times. = data2$Time, format ="hh:mm:ss", out.format = "h:m:s")
 data2$chron
 class(data2$chron)
+
+
 
 ```
 
@@ -364,9 +370,16 @@ lines(fulldat_s2$Heave~fulldat_s2$chron, col="blue")
 
 # to get rid of high frequency signals in the sway axis, need to run a low pass filter. Note that we already started to do that by only getting a data point every second (vs. 20/second)
 
-#Check out filtfilt
+#based on what we see on the S3 video, we have approximately one TB signal every 3 seconds
+# 
+# ## what if we subset every 3 seconds?
+# fulldat_swayset <- fulldat[seq(1, nrow(fulldat), 3),]
+# head(fulldat_swayset)
+# 
+# plot(fulldat_swayset$Sway[1:50]~fulldat_swayset$Time[1:50], type = "l")
 
-
-
-
+```
+Our key metrics are going to be TB frequency and speed
+```{r}
+# Practice bringing out speed, which is in the magnetometer component of the data because that's where the paddlewheel was attached
 ```
