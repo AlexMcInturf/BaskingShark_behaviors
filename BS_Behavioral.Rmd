@@ -13,17 +13,14 @@ head(data, 20)
 class(data$Time)
 summary(data)
 
-## need to keep magnetometer reading, but which one? 
-
-plot(data$Gyroscope..2....channel..1~data$Time)
 
 #clean up CATS Cam data so we only get what we need
-data <- data[,c("Time", "Pressure...channel..1", "Sway..g.", "Surge..g.", "Heave..g.", "Light.intensity...channel..1", "Temperature.ext....channel..1", "ODBA")] 
+#data <- data[,c("Time", "Pressure...channel..1", "Sway..g.", "Surge..g.", "Heave..g.", "Light.intensity...channel..1", "Temperature.ext....channel..1", "ODBA")] 
 
 # need to convert data values to meters
 head(data)
 data$Pressure...channel..1 <- (data$Pressure...channel..1*.001)+.3
-summary(data$Pressure...channel..1) # got this information from Heather...need to confirm (86 meters?)
+summary(data$Pressure...channel..1) # got this information from Heather Vance
 
 
 # This is at 20 Hz. We want to extract every 20th value and get rid of milliseconds
@@ -32,7 +29,7 @@ vector <- as.character(data2$Time)
 data2$Time <- substr(vector, 1, 8)
 head(data2$Time)
 head(data2)
-### this gives us t
+
 
 # make into chron object so that we can merge the behavioral data according to timestamp
 # needed to make as a character first so that chron recognizes the format
@@ -44,6 +41,21 @@ class(data2$chron)
 
 
 
+## need to keep magnetometer reading, but which one? 
+# let's search out the signal 
+
+# data.trash <- data2[200:400,]
+# summary(data.trash)
+# nrow(data.trash)
+# summary(data.trash$Pressure...channel..1)
+# plot(data.trash$Compass..1....channel..1~data.trash$chron, type="l")
+# plot(data.trash$Compass..1....channel..2~data.trash$chron, type="l")
+# plot(data.trash$Compass..1....channel..3~data.trash$chron, type="l")
+# plot(data.trash$Gyroscope..2....channel..1~data.trash$chron, type="l")
+# plot(data.trash$Gyroscope..2....channel..2~data.trash$chron, type="l")
+# plot(data.trash$Gyroscope..2....channel..3~data.trash$chron, type="l")
+# 
+# plot(data2$Gyroscope..2....channel..3~data2$chron, type="l")
 ```
 
 
@@ -109,9 +121,9 @@ fulldat <- left_join(data2, behavior2, by= c("chron"="chron"))
 head(fulldat)
 fulldat <- fulldat[,-1]
 head(fulldat, 200)
-
+summary(fulldat)
 #note that accelerometer values are in g
-colnames(fulldat) <- c("Pressure", "Sway", "Surge", "Heave", "Light", "Temperature", "ODBA", "Time", "Behavior", "Comments")
+colnames(fulldat) <- c("Time2", "Pressure", "Compass1", "Compass2", "Compass3", "AccelSway", "Sway.g.", "AccelSurge", "Surge.g.", "AccelHeave", "Heave.g.", "Temperature", "Gyro1", "Gyro2", "Gyro3", "Accel1", "Accel2", "Accel3", "Temp2", "Light", "TempExt", "ODBA", "Time", "Behavior", "Comments")
 head(fulldat)
 
 # get rid of the top rows before the behaviors begin
@@ -125,6 +137,8 @@ plot(fulldat$Time, (-fulldat$Pressure), type = "l")
 fulldat <- fulldat[fulldat$Pressure<86,]
 summary(fulldat$Pressure)
 plot(fulldat$Time, (-fulldat$Pressure), type = "l")
+
+head(fulldat)
 ##### Now have merged behaviors into the major data set 
 ```
 Now that we have cleaned up our data and combined the CATS and behavioral data sets, we need to fill in the behaviors that are currently missing for every other timestamp (since we set it up so that we only had a behavior assigned to the time when it started)
@@ -141,25 +155,65 @@ for (i in 1:nrow(fulldat)) {
 
 summary(fulldat)
 
+##### Now to clean up data so that we only have depths below 2 meters
+nrow(fulldat) # 12997
 
-### need to get rid of all behaviors that are "out of water"
-fulldat <- fulldat[fulldat$Behavior!="Out of water",]
-summary(fulldat$Behavior) #note: behavior is still kept here as a level for the factor, which should be fine 
+fulldat2 <- fulldat[abs(fulldat$Pressure)>=2,]
+summary(fulldat2$Pressure)
+plot(-(fulldat2$Pressure)~fulldat2$Time, type ="p", cex=.2)
+nrow(fulldat2) #3541
 
-### plot pressure values from new dataset without "out of water" behaviors
+summary(fulldat2)
 
-plot(fulldat$Time, (-fulldat$Pressure), type = "l")
-### We now have a data set that contains all behaviors ###
+
+######################## now divvy up data set so that we have the following ##############
+#### if we keep it simple: feed vs. non-feeding
+
+summary(fulldat2$Pressure)
+
+# going to use fulldat2 to keep it below 2 m to get rid of surface movement
+fulldat2$feeding <- ifelse (fulldat2$Behavior == "Feed"|fulldat2$Behavior == "Lturn while feed"| fulldat2$Behavior == "Rturn while feed"| fulldat2$Behavior == "Swallow", 1, 0)
+
+summary(fulldat2$Pressure)
+#so, feeding here = 1; non-feeding = 1
+
+### surface swimming - i.e. swimming above 10 m but below 2 #####
+summary(fulldat2$Behavior)
+fulldat_ss <- fulldat2[abs(fulldat2$Pressure)<10 & fulldat2$Behavior!="Swim along ground",]
+#chose 10 because that's the most shallow dive, but also excluded swimming along ground (shallower parts of the habitat may be less than or = to 10 m)
+summary(fulldat_ss$Behavior)
+fulldat_ss2<- fulldat_ss[fulldat_ss$feeding==0,]
+nrow(fulldat_ss2)
+plot(-(fulldat_ss2$Pressure)~fulldat_ss2$Time, type ="p", cex=.2)
+
+
+
+### surface feeding - i.e. feeding above 3 m #####
+
+fulldat_sf <- fulldat2[abs(fulldat2$Pressure)<10,]
+fulldat_sf2<- fulldat_sf[fulldat_sf$feeding==1,]
+summary(fulldat_sf2$Behavior)
+nrow(fulldat_sf2)
+
+plot(-(fulldat_sf2$Pressure)~fulldat_sf2$Time, type ="p", cex=.2)
+
+### ground swimming - i.e. swimming below 26 m #####
+fulldat_gs <- fulldat2[abs(fulldat2$Pressure)>=26 & fulldat2$Behavior=="Swim along ground",]
+summary(fulldat_gs$Behavior)
+fulldat_gs2<- fulldat_gs[fulldat_gs$feeding==0,]
+nrow(fulldat_gs2)
+plot(-(fulldat_gs2$Pressure)~fulldat_gs2$Time, type ="p", cex=.2)
+
+
 ```
 ** Data Cleaning Done** Time to divide the water column to look at relevant behaviors in each
 
 ```{r}
 
-#### if we keep it simple: feed vs. non-feeding
-fulldat$feeding <- ifelse (fulldat$Behavior == "Feed"|fulldat$Behavior == "Lturn while feed"| fulldat$Behavior == "Rturn while feed"| fulldat$Behavior == "Swallow", 1, 0)
 
-#so, feeding here = 1; non-feeding = 1
 
+summary(fulldat)
+write.csv(fulldat, file = "S3_everysec_behaviors.csv")
 ## Assuming each row is 1 second. Double check this:
 (fulldat$Time[nrow(fulldat)] - fulldat$Time[1]) #[1] 03:36:22
 nrow(fulldat)
@@ -302,13 +356,59 @@ for (i in 1:nrow(fulldat_s2)) {
 summary(fulldat_s2)
 head(fulldat_s2)
 
-### need to get rid of all behaviors that are "out of water"
-fulldat_s2 <- fulldat_s2[fulldat_s2$Behavior!="Out of water",]
-summary(fulldat_s2$Behavior) #note: behavior is still kept here as a level for the factor, which should be fine 
+##### Now to clean up data so that we only have depths below 2 meters
+nrow(fulldat_s2) # 10147
 
-## now plot pressure without "out of water" behaviors
-plot(fulldat_s2$chron, (-fulldat_s2$Pressure), type = "l")
-### We now have a data set that contains all behaviors ###
+fulldat2.2 <- fulldat_s2[abs(fulldat_s2$Pressure)>=2,]
+summary(fulldat2.2$Pressure)
+plot(-(fulldat2.2$Pressure)~fulldat2.2$chron, type ="p", cex=.2)
+nrow(fulldat2.2) #4304
+
+summary(fulldat2)
+
+
+######################## now divvy up data set so that we have the following ##############
+#### if we keep it simple: feed vs. non-feeding
+
+summary(fulldat2.2$Pressure)
+
+# going to use fulldat2 to keep it below 2 m to get rid of surface movement
+fulldat2.2$feeding <- ifelse (fulldat2.2$Behavior == "Feed"|fulldat2.2$Behavior == "Lturn while feed"| fulldat2.2$Behavior == "Rturn while feed"| fulldat2.2$Behavior == "Swallow", 1, 0)
+
+summary(fulldat2.2$Pressure)
+#so, feeding here = 1; non-feeding = 1
+
+### surface swimming - i.e. swimming above 12 m but below 2 #####
+summary(fulldat2.2$Behavior)
+fulldat_ss.2 <- fulldat2.2[abs(fulldat2.2$Pressure)<10 & fulldat2.2$Behavior!="Swim along bottom",]
+#chose 12 because that's the most shallow dive, but also excluded swimming along ground (shallower parts of the habitat may be less than or = to 12 m)
+summary(fulldat_ss.2$Behavior)
+fulldat_ss2.2<- fulldat_ss.2[fulldat_ss.2$feeding==0,]
+nrow(fulldat_ss2.2)
+plot(-(fulldat_ss2.2$Pressure)~fulldat_ss2.2$chron, type ="p", cex=.2)
+
+
+
+### surface feeding - i.e. feeding above 3 m #####
+
+fulldat_sf.2 <- fulldat2.2[abs(fulldat2.2$Pressure)<12,]
+fulldat_sf2.2<- fulldat_sf.2[fulldat_sf.2$feeding==1,]
+summary(fulldat_sf2.2$Behavior)
+nrow(fulldat_sf2.2)
+fulldat_sf2.2
+
+plot(-(fulldat_sf2.2$Pressure)~fulldat_sf2.2$chron, type ="p", cex=.2)
+
+### ground swimming - i.e. swimming below 26 m #####
+summary(fulldat2.2)
+summary(fulldat2.2$Pressure)
+summary(fulldat2.2$Behavior)
+fulldat_gs.2 <- fulldat2.2[abs(fulldat2.2$Pressure)>=16 & fulldat2.2$Behavior=="Swim along bottom",]
+summary(fulldat_gs.2$Behavior)
+fulldat_gs2.2<- fulldat_gs.2[fulldat_gs.2$feeding==0,]
+nrow(fulldat_gs2.2) #1041
+plot(-(fulldat_gs2.2$Pressure)~fulldat_gs2.2$chron, type ="p", cex=.2)
+
 ```
 ** Data Cleaning Done** Time to divide the water column to look at relevant behaviors in each
 
@@ -318,6 +418,10 @@ plot(fulldat_s2$chron, (-fulldat_s2$Pressure), type = "l")
 fulldat_s2$feeding <- ifelse (fulldat_s2$Behavior == "Feed"|fulldat_s2$Behavior == "Lturn while feed"| fulldat_s2$Behavior == "Rturn while feed"| fulldat_s2$Behavior == "Swallow", 1, 0)
 
 summary(fulldat_s2$feeding)
+
+summary(fulldat_s2)
+
+write.csv(fulldat_s2, file = "S2_everysec_behaviors.csv")
 # convert pressure (mB) to depth 
 #fulldat$Pressure2 <- abs(fulldat$Pressure*0.010197442889221)
 #range(fulldat$Pressure)

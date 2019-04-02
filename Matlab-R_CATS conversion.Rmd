@@ -1,0 +1,63 @@
+---
+title: "MatLab-R conversion_CATS"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Shark_speed
+%% work out speed of shark using magnetometer signal and
+% rotations of the magnet fitted on the external paddle wheel.
+
+```{r}
+setwd("~/Box Sync/BaskingShark_behaviors")
+ID <- 3
+data <- read.csv(paste0("Shark ", ID, "_CATS_behaviors.csv"))
+head(data, 100)
+M.data <- data$Compass..1....channel..3
+class(M.data)
+M.samplingrate <- 20 #20 samples/second
+t = (1:length(M.data))/M.samplingrate
+plot(t[1:100], M.data[1:100], type="l")
+```
+
+% comp_filt seperates the signal into two frequency bands
+% Here we are high-pass filtering the data at around half of the average
+% cycles per second, which I worked out to be about 4 for the paddle wheel.
+
+**Need to download signal package in R to do this**
+
+```{r}
+#X=comp_filt(M.data,M.sampling_rate,2);
+#Mh=X{2};
+
+library(signal)
+fft.Mdata <- fft(M.data)
+plot(Mod(fft.Mdata), type='l', main='Raw serie - fft spectrum')
+
+### The following code removes the first spike in the spectrum
+### This would be the high pass filter
+inx_filter = 15
+N = length(M.data)
+FDfilter = rep(1, N)
+FDfilter[1:inx_filter] = 0
+FDfilter[(N-inx_filter):N] = 0
+fft.y_noise_filtered = FDfilter * fft.Mdata
+plot(Mod(fft.y_noise_filtered), type='l', main='HP Filtered')
+
+
+### creating a Butterworth filter for data (used because maximally flat, order of 5 = steepest cutoff; order of 1 = shallowest cut-off)
+# used W = .5 because 1/2 the average cycles per second (?)
+# z for digital filter
+bf<- butter(n=5, W=.5, type = "high", plane = "z")
+
+
+# now applying the filter to the data
+z <- filter(bf, M.data)
+
+plot(z[1:100], type="l")
+```
