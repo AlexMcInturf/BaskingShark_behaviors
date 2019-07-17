@@ -60,9 +60,4 @@ z <- filter(bf, M.data)
 
 plot(z[1:100], type="l")
 ```
-Now in 2019, better idea of what's going on. Revisiting signal package and accel data
 
-
-```{r}
-
-```

@@ -475,7 +475,7 @@ lines(fulldat$Time[1:1000], fulldat$Sway[1:1000], type="l", col="red")
 # let's do a Fourier transform of the smoothed data
 fouriersway <- fft(swayfilt) # produces real and imaginary numbers
 
-plot(fouriersway) ### how to get frequency on the x-xis?
+plot(Mod(fouriersway)) ### how to get frequency on the x-axis?
 
 
 ```
@@ -496,7 +496,7 @@ lines(s2feed$chron[1:1000], s2feed$Sway[1:1000], type="l", col="red")
 # let's do a Fourier transform of the smoothed data
 fouriersway_s2feed <- fft(swayfilt_s2feed) # produces real and imaginary numbers
 
-plot(fouriersway_s2feed) ### 
+plot(Mod(fouriersway_s2feed)) ### 
 
 ##################### No feed ######################
 summary(fulldat_s2)
@@ -507,11 +507,16 @@ summary(s2nofeed)
 bf<- butter(n=5, W=.1, type = "low", plane = "z") 
 swayfilt_s2nofeed <- filter(bf, s2nofeed$Sway) 
 plot(s2nofeed$chron[1:1000], swayfilt_s2nofeed[1:1000], type="l")
-lines(s2nofeed$chron[1:1000], s2nofee$Sway[1:1000], type="l", col="red")
+lines(s2nofeed$chron[1:1000], s2nofeed$Sway[1:1000], type="l", col="red")
 
 # let's do a Fourier transform of the smoothed data
-fouriersway_s2feed <- fft(swayfilt_s2feed) # produces real and imaginary numbers
+fouriersway_s2nofeed <- fft(swayfilt_s2nofeed) # produces real and imaginary numbers
 
-plot(fouriersway_s2feed) ### 
+plot(Mod(fouriersway_s2nofeed)[1:100], type="l") ### need the Mod to correctly visualize
+plot(Mod(fouriersway_s2feed)[1:100], type="l", col="red")
+
+# compare to raw data (unfiltered)
+plot(Mod(fft(s2nofeed$Sway)), type="l") # if we look at the unfiltered data, we see that we have more noise in the fft diagram; makes sense given we still have higher frequency noise in there
+
 
 ```
