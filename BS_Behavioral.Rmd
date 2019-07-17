@@ -5,7 +5,6 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-setwd("~/Box Sync/BaskingShark_behaviors")
 ID <- 3
 data <- read.csv(paste0("Shark ", ID, "_CATS_behaviors.csv"))
 
@@ -13,17 +12,13 @@ head(data, 20)
 class(data$Time)
 summary(data)
 
-
-#clean up CATS Cam data so we only get what we need
-#data <- data[,c("Time", "Pressure...channel..1", "Sway..g.", "Surge..g.", "Heave..g.", "Light.intensity...channel..1", "Temperature.ext....channel..1", "ODBA")] 
-
 # need to convert data values to meters
 head(data)
 data$Pressure...channel..1 <- (data$Pressure...channel..1*.001)+.3
 summary(data$Pressure...channel..1) # got this information from Heather Vance
 
 
-# This is at 20 Hz. We want to extract every 20th value and get rid of milliseconds
+# This is at 20 Hz. We want to extract every 20th value and get rid of milliseconds (essentially want 1 second sampling)
 data2 <- data[seq(1, nrow(data), 20),]
 vector <- as.character(data2$Time)
 data2$Time <- substr(vector, 1, 8)
@@ -39,23 +34,6 @@ data2$chron<- chron(times. = data2$Time, format ="hh:mm:ss", out.format = "h:m:s
 data2$chron
 class(data2$chron)
 
-
-
-## need to keep magnetometer reading, but which one? 
-# let's search out the signal 
-
-# data.trash <- data2[200:400,]
-# summary(data.trash)
-# nrow(data.trash)
-# summary(data.trash$Pressure...channel..1)
-# plot(data.trash$Compass..1....channel..1~data.trash$chron, type="l")
-# plot(data.trash$Compass..1....channel..2~data.trash$chron, type="l")
-# plot(data.trash$Compass..1....channel..3~data.trash$chron, type="l")
-# plot(data.trash$Gyroscope..2....channel..1~data.trash$chron, type="l")
-# plot(data.trash$Gyroscope..2....channel..2~data.trash$chron, type="l")
-# plot(data.trash$Gyroscope..2....channel..3~data.trash$chron, type="l")
-# 
-# plot(data2$Gyroscope..2....channel..3~data2$chron, type="l")
 ```
 
 
@@ -461,7 +439,7 @@ We will need to run a low pass filter over the tailbeat data (our "sway" axis)
 #install.packages("signal")
 library(signal)
 
-#s3
+#s3 - this is the data without filtering
 plot(fulldat$Heave~fulldat$Time, type = "l", main="Accelerometer signals, S3", xlab="Acceleration (m/s^3)", ylab="Time")
 lines(fulldat$Surge~fulldat$Time, col="red")
 lines(fulldat$Sway~fulldat$Time, col="blue")
@@ -475,15 +453,65 @@ lines(fulldat_s2$Heave~fulldat_s2$chron, col="blue")
 # to get rid of high frequency signals in the sway axis, need to run a low pass filter. Note that we already started to do that by only getting a data point every second (vs. 20/second)
 
 #based on what we see on the S3 video, we have approximately one TB signal every 3 seconds
-# 
-# ## what if we subset every 3 seconds?
-# fulldat_swayset <- fulldat[seq(1, nrow(fulldat), 3),]
-# head(fulldat_swayset)
-# 
-# plot(fulldat_swayset$Sway[1:50]~fulldat_swayset$Time[1:50], type = "l")
+
 
 ```
-Our key metrics are going to be TB frequency and speed
+Our key metrics are going to be TB frequency and speed.
+
+Need to run a low pass filter over "Sway" axis and then run a FFT and/or spectrum analysis. 
+
+This will be practice on Shark 3
 ```{r}
-# Practice bringing out speed, which is in the magnetometer component of the data because that's where the paddlewheel was attached
+
+### creating a Butterworth filter for data (used because maximally flat, order of 5 = steepest cutoff; order of 1 = shallowest cut-off)
+# W ranges between 0 and 1; closer to 0 = stronger filter
+# z for digital filter
+bf<- butter(n=5, W=.1, type = "low", plane = "z") 
+swayfilt <- filter(bf, fulldat$Sway) #filter runs a generic ARMA; going to see slight delay
+length(fulldat$Time)
+plot(fulldat$Time[1:1000], swayfilt[1:1000], type="l")
+lines(fulldat$Time[1:1000], fulldat$Sway[1:1000], type="l", col="red")
+
+# let's do a Fourier transform of the smoothed data
+fouriersway <- fft(swayfilt) # produces real and imaginary numbers
+
+plot(fouriersway) ### how to get frequency on the x-xis?
+
+
+```
+
+Now that we have the baseline signal processing information, let's see if it changes depending on feeding/not feeding
+
+```{r}
+summary(fulldat_s2) #using Shark2 data which has feeding/nf
+s2feed <- fulldat_s2[fulldat_s2$feeding==1,]
+summary(s2feed)
+
+
+bf<- butter(n=5, W=.1, type = "low", plane = "z") 
+swayfilt_s2feed <- filter(bf, s2feed$Sway) 
+plot(s2feed$chron[1:1000], swayfilt_s2feed[1:1000], type="l")
+lines(s2feed$chron[1:1000], s2feed$Sway[1:1000], type="l", col="red")
+
+# let's do a Fourier transform of the smoothed data
+fouriersway_s2feed <- fft(swayfilt_s2feed) # produces real and imaginary numbers
+
+plot(fouriersway_s2feed) ### 
+
+##################### No feed ######################
+summary(fulldat_s2)
+s2nofeed <- fulldat_s2[fulldat_s2$feeding==0,]
+summary(s2nofeed)
+
+
+bf<- butter(n=5, W=.1, type = "low", plane = "z") 
+swayfilt_s2nofeed <- filter(bf, s2nofeed$Sway) 
+plot(s2nofeed$chron[1:1000], swayfilt_s2nofeed[1:1000], type="l")
+lines(s2nofeed$chron[1:1000], s2nofee$Sway[1:1000], type="l", col="red")
+
+# let's do a Fourier transform of the smoothed data
+fouriersway_s2feed <- fft(swayfilt_s2feed) # produces real and imaginary numbers
+
+plot(fouriersway_s2feed) ### 
+
 ```

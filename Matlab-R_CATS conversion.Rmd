@@ -14,7 +14,6 @@ Shark_speed
 % rotations of the magnet fitted on the external paddle wheel.
 
 ```{r}
-setwd("~/Box Sync/BaskingShark_behaviors")
 ID <- 3
 data <- read.csv(paste0("Shark ", ID, "_CATS_behaviors.csv"))
 head(data, 100)
@@ -60,4 +59,10 @@ bf<- butter(n=5, W=.5, type = "high", plane = "z")
 z <- filter(bf, M.data)
 
 plot(z[1:100], type="l")
+```
+Now in 2019, better idea of what's going on. Revisiting signal package and accel data
+
+
+```{r}
+
 ```
